@@ -13,7 +13,7 @@ android {
     compileSdkVersion 36
 
     defaultConfig {
-        applicationId "io.heckel.ntfy"
+        applicationId "io.kuddy.notification"
         minSdkVersion 26
         targetSdkVersion 36
 

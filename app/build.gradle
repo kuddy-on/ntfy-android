@@ -8,6 +8,16 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'com.google.gms.google-services'
 
+def releaseSigning = [
+    storeFile: System.getenv("ANDROID_KEYSTORE_PATH"),
+    storePassword: System.getenv("ANDROID_KEYSTORE_PASSWORD"),
+    keyAlias: System.getenv("ANDROID_KEY_ALIAS"),
+    keyPassword: System.getenv("ANDROID_KEY_PASSWORD")
+]
+def hasReleaseSigning = releaseSigning.values().every { value ->
+    value != null && !value.isBlank()
+}
+
 android {
     namespace "io.heckel.ntfy"
     compileSdkVersion 36
@@ -32,11 +42,25 @@ android {
         }
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(releaseSigning.storeFile)
+                storePassword releaseSigning.storePassword
+                keyAlias releaseSigning.keyAlias
+                keyPassword releaseSigning.keyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             shrinkResources false
             debuggable false
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
             // DEV/TEST ONLY: Uncomment this to test the release build with a debug key.
             //                This is required to test against the production Firebase config.
             // signingConfig signingConfigs.debug

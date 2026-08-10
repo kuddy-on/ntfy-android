@@ -2,6 +2,7 @@ package io.heckel.ntfy.msg
 
 import android.content.Context
 import android.content.Intent
+import io.heckel.ntfy.BuildConfig
 import io.heckel.ntfy.R
 import io.heckel.ntfy.db.Action
 import io.heckel.ntfy.db.Notification
@@ -123,9 +124,9 @@ class BroadcastService(private val ctx: Context) {
         private const val TAG = "NtfyBroadcastService"
         private const val DOES_NOT_EXIST = -2586000
 
-        // These constants cannot be changed without breaking the contract; also see manifest
-        private const val MESSAGE_RECEIVED_ACTION = "io.heckel.ntfy.MESSAGE_RECEIVED"
-        private const val MESSAGE_SEND_ACTION = "io.heckel.ntfy.SEND_MESSAGE"
-        private const val USER_ACTION_ACTION = "io.heckel.ntfy.USER_ACTION"
+        // Keep broadcasts isolated from the official app when both applications are installed.
+        private val MESSAGE_RECEIVED_ACTION = BuildConfig.APPLICATION_ID + ".MESSAGE_RECEIVED"
+        private val MESSAGE_SEND_ACTION = BuildConfig.APPLICATION_ID + ".SEND_MESSAGE"
+        private val USER_ACTION_ACTION = BuildConfig.APPLICATION_ID + ".USER_ACTION"
     }
 }

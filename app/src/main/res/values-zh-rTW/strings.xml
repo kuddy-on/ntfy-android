@@ -233,6 +233,7 @@
     <string name="share_content_image_error">無法讀取圖片：%1$s</string>
     <string name="share_content_file_text">有人分享了一個檔案給你</string>
     <string name="share_successful">訊息已發布</string>
+    <string name="detail_share_image_failed">無法分享通知：%1$s</string>
     <string name="notification_dialog_title">暫停通知</string>
     <string name="notification_dialog_enabled_toast_message">通知已恢復</string>
     <string name="settings_notifications_min_priority_summary_max">顯示優先順序為 5（最高）的通知</string>

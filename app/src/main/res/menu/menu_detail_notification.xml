@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/detail_item_menu_share"
+        android:icon="@drawable/ic_share_24dp"
+        android:title="@string/share_title" />
+    <item
+        android:id="@+id/detail_item_menu_open_link"
+        android:icon="@drawable/ic_open_in_new_24dp"
+        android:title="@string/notification_popup_action_open" />
+    <item
+        android:id="@+id/detail_item_menu_copy"
+        android:icon="@drawable/ic_content_copy_24dp"
+        android:title="@string/common_button_copy" />
+</menu>

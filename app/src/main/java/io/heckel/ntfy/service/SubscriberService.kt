@@ -573,10 +573,10 @@ class SubscriberService : Service() {
         private const val CONNECTION_ALERT_SNOOZE_SHORT_MILLIS = CONNECTION_ALERT_SNOOZE_SHORT_HOURS * ONE_HOUR_MILLIS
         private const val CONNECTION_ALERT_SNOOZE_LONG_HOURS = 8
         private const val CONNECTION_ALERT_SNOOZE_LONG_MILLIS = CONNECTION_ALERT_SNOOZE_LONG_HOURS * ONE_HOUR_MILLIS
-        private const val CONNECTION_ALERT_ACTION_DISMISS = "io.heckel.ntfy.CONNECTION_ALERT_DISMISS"
-        private const val CONNECTION_ALERT_ACTION_SNOOZE_SHORT = "io.heckel.ntfy.CONNECTION_ALERT_SNOOZE_SHORT"
-        private const val CONNECTION_ALERT_ACTION_SNOOZE_LONG = "io.heckel.ntfy.CONNECTION_ALERT_SNOOZE_LONG"
-        private const val CONNECTION_ALERT_ACTION_NEVER = "io.heckel.ntfy.CONNECTION_ALERT_NEVER"
+        private val CONNECTION_ALERT_ACTION_DISMISS = BuildConfig.APPLICATION_ID + ".CONNECTION_ALERT_DISMISS"
+        private val CONNECTION_ALERT_ACTION_SNOOZE_SHORT = BuildConfig.APPLICATION_ID + ".CONNECTION_ALERT_SNOOZE_SHORT"
+        private val CONNECTION_ALERT_ACTION_SNOOZE_LONG = BuildConfig.APPLICATION_ID + ".CONNECTION_ALERT_SNOOZE_LONG"
+        private val CONNECTION_ALERT_ACTION_NEVER = BuildConfig.APPLICATION_ID + ".CONNECTION_ALERT_NEVER"
 
         // Unique request codes for connection alert PendingIntents. These must be distinct so
         // that each PendingIntent is treated as a separate entry by the system.

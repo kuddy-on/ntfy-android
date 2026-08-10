@@ -138,10 +138,10 @@
                 android:enabled="true"
                 android:exported="false">
             <intent-filter>
-                <action android:name="io.heckel.ntfy.CONNECTION_ALERT_DISMISS"/>
-                <action android:name="io.heckel.ntfy.CONNECTION_ALERT_SNOOZE_SHORT"/>
-                <action android:name="io.heckel.ntfy.CONNECTION_ALERT_SNOOZE_LONG"/>
-                <action android:name="io.heckel.ntfy.CONNECTION_ALERT_NEVER"/>
+                <action android:name="${applicationId}.CONNECTION_ALERT_DISMISS"/>
+                <action android:name="${applicationId}.CONNECTION_ALERT_SNOOZE_SHORT"/>
+                <action android:name="${applicationId}.CONNECTION_ALERT_SNOOZE_LONG"/>
+                <action android:name="${applicationId}.CONNECTION_ALERT_NEVER"/>
             </intent-filter>
         </receiver>
 
@@ -151,7 +151,7 @@
                 android:enabled="true"
                 android:exported="true">
             <intent-filter>
-                <action android:name="io.heckel.ntfy.SEND_MESSAGE"/>
+                <action android:name="${applicationId}.SEND_MESSAGE"/>
             </intent-filter>
         </receiver>
 

@@ -32,29 +32,59 @@ internal object NotificationShareImage {
     private const val OUTER_MARGIN = 40f
     private const val CARD_PADDING = 64f
     private const val HEADER_ICON_SIZE = 96
-    private const val MAX_MESSAGE_LINES = 32
+    private const val MAX_MESSAGE_LINES_PER_IMAGE = 32
 
-    fun create(context: Context, notification: Notification, topicName: String): Uri {
-        val bitmap = render(context, notification, topicName)
+    fun create(context: Context, notification: Notification, topicName: String): ArrayList<Uri> {
+        val contentWidth = (IMAGE_WIDTH - 2 * (OUTER_MARGIN + CARD_PADDING)).toInt()
+        val messagePaint = messagePaint()
+        val messagePages = paginateMessage(
+            formatMessage(notification).ifBlank { " " },
+            messagePaint,
+            contentWidth
+        )
         val shareDirectory = File(context.cacheDir, "shared-notifications")
         check(shareDirectory.exists() || shareDirectory.mkdirs()) {
             "Cannot create the notification share directory"
         }
         val stableId = notification.id.hashCode().toLong() and 0xffffffffL
-        val output = File(shareDirectory, "notification-$stableId.png")
-        try {
-            FileOutputStream(output).use { stream ->
-                check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)) {
-                    "Cannot encode the notification image"
+        val outputUris = ArrayList<Uri>(messagePages.size)
+        messagePages.forEachIndexed { pageIndex, message ->
+            val bitmap = render(
+                context = context,
+                notification = notification,
+                topicName = topicName,
+                message = message,
+                pageNumber = pageIndex + 1,
+                pageCount = messagePages.size
+            )
+            val output = File(
+                shareDirectory,
+                "notification-$stableId-${pageIndex + 1}-of-${messagePages.size}.png"
+            )
+            try {
+                FileOutputStream(output).use { stream ->
+                    check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)) {
+                        "Cannot encode the notification image"
+                    }
                 }
+            } finally {
+                bitmap.recycle()
             }
-        } finally {
-            bitmap.recycle()
+            outputUris.add(
+                FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".provider", output)
+            )
         }
-        return FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".provider", output)
+        return outputUris
     }
 
-    private fun render(context: Context, notification: Notification, topicName: String): Bitmap {
+    private fun render(
+        context: Context,
+        notification: Notification,
+        topicName: String,
+        message: String,
+        pageNumber: Int,
+        pageCount: Int
+    ): Bitmap {
         val cardLeft = OUTER_MARGIN
         val cardTop = OUTER_MARGIN
         val contentLeft = cardLeft + CARD_PADDING
@@ -63,7 +93,7 @@ internal object NotificationShareImage {
         val appNamePaint = textPaint(42f, Color.rgb(24, 34, 30), Typeface.BOLD)
         val topicPaint = textPaint(31f, Color.rgb(92, 108, 102), Typeface.NORMAL)
         val titlePaint = textPaint(54f, Color.rgb(20, 29, 26), Typeface.BOLD)
-        val messagePaint = textPaint(42f, Color.rgb(39, 49, 45), Typeface.NORMAL)
+        val messagePaint = messagePaint()
         val tagPaint = textPaint(30f, Color.rgb(51, 133, 116), Typeface.BOLD)
         val datePaint = textPaint(29f, Color.rgb(105, 118, 113), Typeface.NORMAL)
 
@@ -78,10 +108,9 @@ internal object NotificationShareImage {
         val title = if (notification.title.isBlank()) "" else formatTitle(notification)
         val titleLayout = if (title.isBlank()) null else layout(title, titlePaint, contentWidth, maxLines = 3)
         val messageLayout = layout(
-            formatMessage(notification).ifBlank { " " },
+            message,
             messagePaint,
             contentWidth,
-            maxLines = MAX_MESSAGE_LINES,
             lineSpacing = 12f
         )
         val tags = unmatchedTags(splitTags(notification.tags))
@@ -91,7 +120,12 @@ internal object NotificationShareImage {
         val attachmentLayout = attachment?.let {
             layout("📎  $it", topicPaint, contentWidth, maxLines = 2)
         }
-        val dateLayout = layout(formatDateShort(notification.timestamp), datePaint, contentWidth, maxLines = 1)
+        val footer = if (pageCount == 1) {
+            formatDateShort(notification.timestamp)
+        } else {
+            "${formatDateShort(notification.timestamp)}   ·   $pageNumber/$pageCount"
+        }
+        val dateLayout = layout(footer, datePaint, contentWidth, maxLines = 1)
 
         var contentHeight = CARD_PADDING.toInt() + HEADER_ICON_SIZE + 52
         titleLayout?.let { contentHeight += it.height + 30 }
@@ -158,23 +192,57 @@ internal object NotificationShareImage {
         }
     }
 
+    private fun messagePaint(): TextPaint {
+        return textPaint(42f, Color.rgb(39, 49, 45), Typeface.NORMAL)
+    }
+
+    private fun paginateMessage(text: String, paint: TextPaint, width: Int): List<String> {
+        val fullLayout = layout(text, paint, width, lineSpacing = 12f)
+        if (fullLayout.lineCount <= MAX_MESSAGE_LINES_PER_IMAGE) {
+            return listOf(text)
+        }
+
+        return buildList {
+            var firstLine = 0
+            while (firstLine < fullLayout.lineCount) {
+                val lastLine = minOf(
+                    firstLine + MAX_MESSAGE_LINES_PER_IMAGE - 1,
+                    fullLayout.lineCount - 1
+                )
+                val startOffset = fullLayout.getLineStart(firstLine)
+                var endOffset = fullLayout.getLineEnd(lastLine)
+                if (endOffset > startOffset && text[endOffset - 1] == '\n') {
+                    endOffset--
+                    if (endOffset > startOffset && text[endOffset - 1] == '\r') {
+                        endOffset--
+                    }
+                }
+                add(text.substring(startOffset, endOffset).ifBlank { " " })
+                firstLine = lastLine + 1
+            }
+        }
+    }
+
     private fun layout(
         text: CharSequence,
         paint: TextPaint,
         width: Int,
-        maxLines: Int,
+        maxLines: Int? = null,
         lineSpacing: Float = 6f
     ): StaticLayout {
-        return StaticLayout.Builder.obtain(text, 0, text.length, paint, width)
+        val builder = StaticLayout.Builder.obtain(text, 0, text.length, paint, width)
             .setAlignment(Layout.Alignment.ALIGN_NORMAL)
             .setIncludePad(false)
             .setLineSpacing(lineSpacing, 1f)
             .setBreakStrategy(Layout.BREAK_STRATEGY_HIGH_QUALITY)
             .setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NORMAL)
-            .setEllipsize(TextUtils.TruncateAt.END)
-            .setEllipsizedWidth(width)
-            .setMaxLines(maxLines)
-            .build()
+        if (maxLines != null) {
+            builder
+                .setEllipsize(TextUtils.TruncateAt.END)
+                .setEllipsizedWidth(width)
+                .setMaxLines(maxLines)
+        }
+        return builder.build()
     }
 
     private fun drawLayout(canvas: Canvas, layout: StaticLayout, x: Float, y: Float) {

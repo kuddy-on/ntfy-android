@@ -62,6 +62,7 @@ import java.util.Date
 import kotlin.random.Random
 import androidx.core.view.size
 import androidx.core.view.get
+import androidx.core.net.toUri
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.textfield.TextInputEditText
 import android.widget.ImageButton
@@ -941,11 +942,20 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
 
         PopupMenu(this, anchor).apply {
             menuInflater.inflate(R.menu.menu_detail_notification, menu)
+            menu.findItem(R.id.detail_item_menu_open_link).isVisible = notification.click.isNotBlank()
             setForceShowIcon(true)
             setOnMenuItemClickListener { item ->
                 when (item.itemId) {
                     R.id.detail_item_menu_share -> {
                         shareNotificationAsImage(notification)
+                        true
+                    }
+                    R.id.detail_item_menu_open_link -> {
+                        openNotificationLink(notification)
+                        true
+                    }
+                    R.id.detail_item_menu_copy -> {
+                        copyToClipboard(this@DetailActivity, "notification", decodeMessage(notification))
                         true
                     }
                     else -> false
@@ -955,20 +965,44 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
         }
     }
 
+    private fun openNotificationLink(notification: Notification) {
+        try {
+            startActivity(Intent(ACTION_VIEW, notification.click.toUri()))
+        } catch (e: Exception) {
+            Log.w(TAG, "Cannot open click URL", e)
+            Toast
+                .makeText(
+                    this@DetailActivity,
+                    getString(R.string.detail_item_cannot_open_url, e.message),
+                    Toast.LENGTH_LONG
+                )
+                .show()
+        }
+    }
+
     private fun shareNotificationAsImage(notification: Notification) {
         lifecycleScope.launch {
             try {
-                val uri = withContext(Dispatchers.IO) {
+                val uris = withContext(Dispatchers.IO) {
                     NotificationShareImage.create(
                         context = this@DetailActivity,
                         notification = notification,
                         topicName = subscriptionDisplayName.ifBlank { subscriptionTopic }
                     )
                 }
-                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                val action = if (uris.size == 1) Intent.ACTION_SEND else Intent.ACTION_SEND_MULTIPLE
+                val shareClipData = android.content.ClipData.newRawUri("notification", uris.first())
+                uris.drop(1).forEach { uri ->
+                    shareClipData.addItem(android.content.ClipData.Item(uri))
+                }
+                val shareIntent = Intent(action).apply {
                     type = "image/png"
-                    putExtra(Intent.EXTRA_STREAM, uri)
-                    clipData = android.content.ClipData.newRawUri("notification", uri)
+                    if (uris.size == 1) {
+                        putExtra(Intent.EXTRA_STREAM, uris.first())
+                    } else {
+                        putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+                    }
+                    clipData = shareClipData
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
                 startActivity(Intent.createChooser(shareIntent, getString(R.string.share_title)))

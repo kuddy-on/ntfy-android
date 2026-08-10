@@ -17,6 +17,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.view.ActionMode
+import androidx.appcompat.widget.PopupMenu
 import androidx.appcompat.widget.SearchView
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
@@ -56,11 +57,11 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Date
 import kotlin.random.Random
 import androidx.core.view.size
 import androidx.core.view.get
-import androidx.core.net.toUri
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.textfield.TextInputEditText
 import android.widget.ImageButton
@@ -304,7 +305,7 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
 
         // Update main list based on viewModel (& its datasource/livedata)
         val noEntriesText: View = findViewById(R.id.detail_no_notifications)
-        val onNotificationClick = { n: Notification -> onNotificationClick(n) }
+        val onNotificationClick = { anchor: View, n: Notification -> onNotificationClick(anchor, n) }
         val onNotificationLongClick = { n: Notification -> onNotificationLongClick(n) }
 
         adapter = DetailAdapter(this, lifecycleScope, repository, onNotificationClick, onNotificationLongClick)
@@ -932,23 +933,54 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
         dialog.show()
     }
 
-    private fun onNotificationClick(notification: Notification) {
+    private fun onNotificationClick(anchor: View, notification: Notification) {
         if (actionMode != null) {
             handleActionModeClick(notification)
-        } else if (notification.click != "") {
-            try {
-                startActivity(Intent(ACTION_VIEW, notification.click.toUri()))
-            } catch (e: Exception) {
-                Log.w(TAG, "Cannot open click URL", e)
-                runOnUiThread {
-                    Toast
-                        .makeText(this@DetailActivity, getString(R.string.detail_item_cannot_open_url, e.message), Toast.LENGTH_LONG)
-                        .show()
+            return
+        }
+
+        PopupMenu(this, anchor).apply {
+            menuInflater.inflate(R.menu.menu_detail_notification, menu)
+            setForceShowIcon(true)
+            setOnMenuItemClickListener { item ->
+                when (item.itemId) {
+                    R.id.detail_item_menu_share -> {
+                        shareNotificationAsImage(notification)
+                        true
+                    }
+                    else -> false
                 }
             }
-        } else {
-            runOnUiThread {
-                copyToClipboard(this, "notification", decodeMessage(notification))
+            show()
+        }
+    }
+
+    private fun shareNotificationAsImage(notification: Notification) {
+        lifecycleScope.launch {
+            try {
+                val uri = withContext(Dispatchers.IO) {
+                    NotificationShareImage.create(
+                        context = this@DetailActivity,
+                        notification = notification,
+                        topicName = subscriptionDisplayName.ifBlank { subscriptionTopic }
+                    )
+                }
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "image/png"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    clipData = android.content.ClipData.newRawUri("notification", uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                startActivity(Intent.createChooser(shareIntent, getString(R.string.share_title)))
+            } catch (e: Exception) {
+                Log.w(TAG, "Cannot share notification as an image", e)
+                Toast
+                    .makeText(
+                        this@DetailActivity,
+                        getString(R.string.detail_share_image_failed, e.message ?: e.javaClass.simpleName),
+                        Toast.LENGTH_LONG
+                    )
+                    .show()
             }
         }
     }

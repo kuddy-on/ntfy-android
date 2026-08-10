@@ -292,6 +292,7 @@
     <string name="share_topic_title">Share to</string>
     <string name="share_suggested_topics">Suggested topics</string>
     <string name="share_successful">Message published</string>
+    <string name="detail_share_image_failed">Unable to share notification: %1$s</string>
 
     <!-- Notification dialog -->
     <string name="notification_dialog_title">Mute notifications</string>

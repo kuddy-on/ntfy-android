@@ -43,7 +43,7 @@ import kotlinx.coroutines.launch
 import me.saket.bettermovementmethod.BetterLinkMovementMethod
 import androidx.core.net.toUri
 
-class DetailAdapter(private val activity: Activity, private val lifecycleScope: CoroutineScope, private val repository: Repository, private val onClick: (Notification) -> Unit, private val onLongClick: (Notification) -> Unit) :
+class DetailAdapter(private val activity: Activity, private val lifecycleScope: CoroutineScope, private val repository: Repository, private val onClick: (View, Notification) -> Unit, private val onLongClick: (Notification) -> Unit) :
     ListAdapter<Notification, DetailAdapter.DetailViewHolder>(TopicDiffCallback) {
     private val markwon: Markwon = MarkwonFactory.createForMessage(activity)
     val selected = mutableSetOf<String>() // Notification IDs
@@ -86,7 +86,7 @@ class DetailAdapter(private val activity: Activity, private val lifecycleScope: 
         private val markwon: Markwon,
         itemView: View,
         private val selected: Set<String>,
-        val onClick: (Notification) -> Unit,
+        val onClick: (View, Notification) -> Unit,
         val onLongClick: (Notification) -> Unit
     ) :
         RecyclerView.ViewHolder(itemView) {
@@ -130,13 +130,13 @@ class DetailAdapter(private val activity: Activity, private val lifecycleScope: 
                 // It's weird because "layout" is the ripple-able, but the card is clickable.
                 // See https://github.com/binwiederhier/ntfy/issues/226
                 layout.ripple(lifecycleScope)
-                onClick(notification)
+                onClick(cardView, notification)
             }
             messageView.setOnLongClickListener {
                 onLongClick(notification); true
             }
             newDotImageView.visibility = if (notification.notificationId == 0) View.GONE else View.VISIBLE
-            cardView.setOnClickListener { onClick(notification) }
+            cardView.setOnClickListener { onClick(cardView, notification) }
             cardView.setOnLongClickListener { onLongClick(notification); true }
             if (notification.title != "") {
                 titleView.visibility = View.VISIBLE

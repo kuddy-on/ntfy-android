@@ -122,13 +122,6 @@ class AppUpdateManager(private val activity: AppCompatActivity) {
                     }
                     .show()
             }
-            is UpdateCheckResult.ReleaseHasNoApk -> {
-                MaterialAlertDialogBuilder(activity)
-                    .setTitle(R.string.update_check_no_apk_title)
-                    .setMessage(activity.getString(R.string.update_check_no_apk_message, result.version))
-                    .setPositiveButton(android.R.string.ok, null)
-                    .show()
-            }
             UpdateCheckResult.UpToDate -> {
                 MaterialAlertDialogBuilder(activity)
                     .setTitle(R.string.update_check_up_to_date_title)

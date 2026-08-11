@@ -187,7 +187,7 @@ jobs:
             exit 1
           fi
 
-          asset_name="notification-${RELEASE_TAG}-fdroid-release.apk"
+          asset_name="notification-fdroid-release.apk"
           cp "${release_apk}" "${asset_name}"
           gh release upload "${RELEASE_TAG}" "${asset_name}" \
             --repo "${GITHUB_REPOSITORY}" \

@@ -88,8 +88,6 @@
     <string name="update_check_up_to_date_message">Version %1$s is the latest version.</string>
     <string name="update_check_no_release_title">No release available</string>
     <string name="update_check_no_release_message">This repository does not have a published GitHub Release yet.</string>
-    <string name="update_check_no_apk_title">APK unavailable</string>
-    <string name="update_check_no_apk_message">Release %1$s is newer, but it does not contain an installable APK.</string>
     <string name="update_check_failed_title">Unable to check for updates</string>
     <string name="update_check_failed_message">GitHub could not be checked: %1$s</string>
     <string name="update_download_title">Notification %1$s</string>

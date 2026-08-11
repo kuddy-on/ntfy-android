@@ -1,19 +1,19 @@
 package io.heckel.ntfy.update
 
-import com.google.gson.Gson
-import com.google.gson.annotations.SerializedName
+import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
 
 data class ReleaseAsset(
     val name: String,
-    @SerializedName("browser_download_url") val downloadUrl: String,
-    @SerializedName("content_type") val contentType: String?
+    val downloadUrl: String,
+    val contentType: String?
 )
 
 data class GitHubRelease(
-    @SerializedName("tag_name") val tagName: String,
+    val tagName: String,
     val name: String?,
     val assets: List<ReleaseAsset>
 )
@@ -25,7 +25,6 @@ sealed interface UpdateCheckResult {
         val asset: ReleaseAsset
     ) : UpdateCheckResult
 
-    data class ReleaseHasNoApk(val version: String) : UpdateCheckResult
     data object UpToDate : UpdateCheckResult
     data object NoPublishedRelease : UpdateCheckResult
 }
@@ -33,13 +32,15 @@ sealed interface UpdateCheckResult {
 class GitHubReleaseClient(
     private val repository: String,
     private val client: OkHttpClient = OkHttpClient(),
-    private val gson: Gson = Gson()
+    private val githubBaseUrl: HttpUrl = GITHUB_BASE_URL
 ) {
+    private val repositoryPathSegments = requireNotNull(parseRepositoryPathSegments(repository)) {
+        "GitHub repository must use the owner/name format"
+    }
+
     fun check(currentVersion: String): UpdateCheckResult {
         val request = Request.Builder()
-            .url("https://api.github.com/repos/$repository/releases/latest")
-            .header("Accept", "application/vnd.github+json")
-            .header("X-GitHub-Api-Version", "2022-11-28")
+            .url(repositoryUrl("releases", "latest"))
             .header("User-Agent", "notification-android/$currentVersion")
             .build()
 
@@ -48,20 +49,55 @@ class GitHubReleaseClient(
                 return UpdateCheckResult.NoPublishedRelease
             }
             if (!response.isSuccessful) {
-                throw IOException("GitHub Releases API returned HTTP ${response.code}")
+                throw IOException("GitHub Releases page returned HTTP ${response.code}")
             }
 
-            val release = gson.fromJson(response.body.string(), GitHubRelease::class.java)
-                ?: throw IOException("GitHub Releases API returned an empty response")
-            val latestVersion = normalizeVersion(release.tagName)
+            val tagName = releaseTagFromUrl(response.request.url, repository)
+                ?: throw IOException("GitHub latest release redirect did not contain a version tag")
+            val latestVersion = normalizeVersion(tagName)
             if (!isNewerVersion(latestVersion, currentVersion)) {
                 return UpdateCheckResult.UpToDate
             }
 
-            val asset = selectApkAsset(release.assets)
-                ?: return UpdateCheckResult.ReleaseHasNoApk(latestVersion)
+            val asset = ReleaseAsset(
+                name = LATEST_APK_ASSET_NAME,
+                downloadUrl = repositoryUrl(
+                    "releases",
+                    "download",
+                    tagName,
+                    LATEST_APK_ASSET_NAME
+                ).toString(),
+                contentType = APK_MIME_TYPE
+            )
+            val release = GitHubRelease(tagName, tagName, listOf(asset))
             return UpdateCheckResult.UpdateAvailable(release, latestVersion, asset)
         }
+    }
+
+    private fun githubUrl(vararg pathSegments: String): HttpUrl {
+        return githubBaseUrl.newBuilder()
+            .apply { pathSegments.forEach(::addPathSegment) }
+            .build()
+    }
+
+    private fun repositoryUrl(vararg pathSegments: String): HttpUrl {
+        return githubUrl(*(repositoryPathSegments + pathSegments).toTypedArray())
+    }
+}
+
+internal fun releaseTagFromUrl(url: HttpUrl, repository: String): String? {
+    val repositorySegments = parseRepositoryPathSegments(repository) ?: return null
+
+    val expectedPrefix = repositorySegments + listOf("releases", "tag")
+    val pathSegments = url.pathSegments
+    if (pathSegments.size != expectedPrefix.size + 1) return null
+    if (pathSegments.take(expectedPrefix.size) != expectedPrefix) return null
+    return pathSegments.last().takeIf(VERSION_TAG_REGEX::matches)
+}
+
+private fun parseRepositoryPathSegments(repository: String): List<String>? {
+    return repository.split('/').takeIf { segments ->
+        segments.size == 2 && segments.none(String::isBlank)
     }
 }
 
@@ -89,25 +125,7 @@ private fun versionNumbers(version: String): List<Long> {
         .mapNotNull { component -> component.toLongOrNull() }
 }
 
-internal fun selectApkAsset(assets: List<ReleaseAsset>): ReleaseAsset? {
-    return assets
-        .asSequence()
-        .filter { asset ->
-            asset.name.endsWith(".apk", ignoreCase = true) ||
-                asset.contentType.equals(APK_MIME_TYPE, ignoreCase = true)
-        }
-        .filterNot { it.name.contains("debug", ignoreCase = true) }
-        .maxByOrNull(::apkAssetScore)
-}
-
-private fun apkAssetScore(asset: ReleaseAsset): Int {
-    val name = asset.name.lowercase()
-    var score = 0
-    if ("fdroid" in name) score += 100
-    if ("universal" in name) score += 50
-    if ("release" in name) score += 25
-    if (asset.contentType.equals(APK_MIME_TYPE, ignoreCase = true)) score += 10
-    return score
-}
-
 private const val APK_MIME_TYPE = "application/vnd.android.package-archive"
+private const val LATEST_APK_ASSET_NAME = "notification-fdroid-release.apk"
+private val GITHUB_BASE_URL = "https://github.com/".toHttpUrl()
+private val VERSION_TAG_REGEX = Regex("v[0-9]+\\.[0-9]+\\.[0-9]+", RegexOption.IGNORE_CASE)

@@ -18,6 +18,8 @@ import androidx.core.content.FileProvider
 import io.heckel.ntfy.BuildConfig
 import io.heckel.ntfy.R
 import io.heckel.ntfy.db.Notification
+import io.heckel.ntfy.db.isMarkdown
+import io.heckel.ntfy.util.MarkwonFactory
 import io.heckel.ntfy.util.formatDateShort
 import io.heckel.ntfy.util.formatMessage
 import io.heckel.ntfy.util.formatTitle
@@ -37,8 +39,14 @@ internal object NotificationShareImage {
     fun create(context: Context, notification: Notification, topicName: String): ArrayList<Uri> {
         val contentWidth = (IMAGE_WIDTH - 2 * (OUTER_MARGIN + CARD_PADDING)).toInt()
         val messagePaint = messagePaint()
+        val formattedMessage = formatMessage(notification).ifBlank { " " }
+        val renderedMessage = if (notification.isMarkdown()) {
+            MarkwonFactory.createForMessage(context).toMarkdown(formattedMessage)
+        } else {
+            formattedMessage
+        }
         val messagePages = paginateMessage(
-            formatMessage(notification).ifBlank { " " },
+            renderedMessage,
             messagePaint,
             contentWidth
         )
@@ -81,7 +89,7 @@ internal object NotificationShareImage {
         context: Context,
         notification: Notification,
         topicName: String,
-        message: String,
+        message: CharSequence,
         pageNumber: Int,
         pageCount: Int
     ): Bitmap {
@@ -196,7 +204,7 @@ internal object NotificationShareImage {
         return textPaint(42f, Color.rgb(39, 49, 45), Typeface.NORMAL)
     }
 
-    private fun paginateMessage(text: String, paint: TextPaint, width: Int): List<String> {
+    private fun paginateMessage(text: CharSequence, paint: TextPaint, width: Int): List<CharSequence> {
         val fullLayout = layout(text, paint, width, lineSpacing = 12f)
         if (fullLayout.lineCount <= MAX_MESSAGE_LINES_PER_IMAGE) {
             return listOf(text)
@@ -217,7 +225,8 @@ internal object NotificationShareImage {
                         endOffset--
                     }
                 }
-                add(text.substring(startOffset, endOffset).ifBlank { " " })
+                val page = text.subSequence(startOffset, endOffset)
+                add(if (page.isBlank()) " " else page)
                 firstLine = lastLine + 1
             }
         }

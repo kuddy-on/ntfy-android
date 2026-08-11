@@ -18,6 +18,23 @@ def hasReleaseSigning = releaseSigning.values().every { value ->
     value != null && !value.isBlank()
 }
 
+def appVersionName = rootProject.file("version.txt").text.trim()
+def appVersionMatcher = appVersionName =~ /^(\d+)\.(\d+)\.(\d+)$/
+if (!appVersionMatcher.matches()) {
+    throw new GradleException("version.txt must contain a semantic version such as 1.25.2")
+}
+def appVersionMajor = appVersionMatcher[0][1].toLong()
+def appVersionMinor = appVersionMatcher[0][2].toLong()
+def appVersionPatch = appVersionMatcher[0][3].toLong()
+if (appVersionMinor > 999 || appVersionPatch > 999) {
+    throw new GradleException("Minor and patch versions in version.txt must be below 1000")
+}
+def appVersionCodeValue = appVersionMajor * 1000000L + appVersionMinor * 1000L + appVersionPatch
+if (appVersionCodeValue <= 0 || appVersionCodeValue > 2100000000L) {
+    throw new GradleException("The version in version.txt produces an invalid Android versionCode")
+}
+def appVersionCode = appVersionCodeValue.toInteger()
+
 android {
     namespace "io.heckel.ntfy"
     compileSdkVersion 36
@@ -27,8 +44,8 @@ android {
         minSdkVersion 26
         targetSdkVersion 36
 
-        versionCode 63
-        versionName "1.25.2"
+        versionCode appVersionCode
+        versionName appVersionName
 
         buildConfigField 'String', 'UPDATE_REPOSITORY', '"kuddy-on/ntfy-android"'
 

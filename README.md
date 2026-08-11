@@ -7,6 +7,14 @@ If you're downloading the APKs from GitHub, they are signed with a certificate w
 ## Build
 For up-to-date building instructions, please see the [official docs](https://docs.ntfy.sh/develop/#android-app).
 
+## Publishing a self-update release
+
+Releases are managed by [Release Please](https://github.com/googleapis/release-please). Use [Conventional Commits](https://www.conventionalcommits.org/) when merging changes into `main`. Release Please maintains a version and changelog pull request based on those commits.
+
+Merge the Release Please pull request when the new version is ready. The `Build Android APK` workflow verifies the signed F-Droid build, creates the version tag and GitHub Release, and attaches a raw `.apk` Release asset. GitHub Actions artifacts are still ZIP archives for CI use; the Android self-updater downloads the raw APK from the GitHub Release instead.
+
+`version.txt` is the release version source. Gradle derives both `versionName` and a monotonically increasing Android `versionCode` from it, so they must not be edited separately. The existing Android signing secrets must remain configured for publishing to succeed.
+
 ## Translations
 We're using [Weblate](https://hosted.weblate.org/projects/ntfy/) to translate the ntfy Android app. We'd love your participation.
 

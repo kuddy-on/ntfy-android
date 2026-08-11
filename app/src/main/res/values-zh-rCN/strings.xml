@@ -22,8 +22,6 @@
     <string name="update_check_up_to_date_message">当前的 %1$s 已是最新版本。</string>
     <string name="update_check_no_release_title">暂无可用版本</string>
     <string name="update_check_no_release_message">此仓库尚未发布 GitHub Release。</string>
-    <string name="update_check_no_apk_title">没有可用的 APK</string>
-    <string name="update_check_no_apk_message">发现较新的 %1$s 版本，但该 Release 中没有可安装的 APK。</string>
     <string name="update_check_failed_title">无法检查更新</string>
     <string name="update_check_failed_message">无法连接 GitHub 检查更新：%1$s</string>
     <string name="update_download_title">通知 %1$s</string>

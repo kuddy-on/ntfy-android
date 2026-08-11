@@ -1,5 +1,10 @@
 package io.heckel.ntfy.update
 
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.OkHttpClient
+import okhttp3.Protocol
+import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -15,27 +20,55 @@ class GitHubReleaseClientTest {
     }
 
     @Test
-    fun ignoresDebugApksAndPrefersFdroidRelease() {
-        val assets = listOf(
-            ReleaseAsset("notification-debug.apk", "https://example.com/debug.apk", APK_MIME),
-            ReleaseAsset("notification-universal-release.apk", "https://example.com/universal.apk", APK_MIME),
-            ReleaseAsset("notification-fdroid-release.apk", "https://example.com/fdroid.apk", APK_MIME)
-        )
+    fun extractsVersionFromLatestReleaseRedirect() {
+        val url = "https://github.com/kuddy-on/ntfy-android/releases/tag/v1.25.3".toHttpUrl()
 
-        assertEquals("notification-fdroid-release.apk", selectApkAsset(assets)?.name)
+        assertEquals("v1.25.3", releaseTagFromUrl(url, REPOSITORY))
     }
 
     @Test
-    fun returnsNullWhenReleaseHasNoInstallableApk() {
-        val assets = listOf(
-            ReleaseAsset("source.zip", "https://example.com/source.zip", "application/zip"),
-            ReleaseAsset("notification-debug.apk", "https://example.com/debug.apk", APK_MIME)
-        )
+    fun rejectsUnexpectedReleaseRedirect() {
+        val wrongRepository = "https://github.com/other/repository/releases/tag/v1.25.3".toHttpUrl()
+        val nonVersionTag = "https://github.com/kuddy-on/ntfy-android/releases/tag/latest".toHttpUrl()
 
-        assertEquals(null, selectApkAsset(assets))
+        assertEquals(null, releaseTagFromUrl(wrongRepository, REPOSITORY))
+        assertEquals(null, releaseTagFromUrl(nonVersionTag, REPOSITORY))
+    }
+
+    @Test
+    fun checksLatestReleaseWithoutUsingRestApi() {
+        var requestedUrl = ""
+        val httpClient = OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                requestedUrl = chain.request().url.toString()
+                Response.Builder()
+                    .request(
+                        chain.request().newBuilder()
+                            .url("https://github.com/$REPOSITORY/releases/tag/v1.25.3")
+                            .build()
+                    )
+                    .protocol(Protocol.HTTP_1_1)
+                    .code(200)
+                    .message("OK")
+                    .body("".toResponseBody())
+                    .build()
+            }
+            .build()
+
+        val result = GitHubReleaseClient(REPOSITORY, httpClient).check("1.25.2")
+
+        assertTrue(result is UpdateCheckResult.UpdateAvailable)
+        result as UpdateCheckResult.UpdateAvailable
+        assertEquals("https://github.com/$REPOSITORY/releases/latest", requestedUrl)
+        assertEquals("1.25.3", result.version)
+        assertEquals("notification-fdroid-release.apk", result.asset.name)
+        assertEquals(
+            "https://github.com/$REPOSITORY/releases/download/v1.25.3/notification-fdroid-release.apk",
+            result.asset.downloadUrl
+        )
     }
 
     companion object {
-        private const val APK_MIME = "application/vnd.android.package-archive"
+        private const val REPOSITORY = "kuddy-on/ntfy-android"
     }
 }

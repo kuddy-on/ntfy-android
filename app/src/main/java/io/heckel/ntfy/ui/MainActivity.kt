@@ -60,6 +60,7 @@ import io.heckel.ntfy.msg.NotificationDispatcher
 import io.heckel.ntfy.msg.Poller
 import io.heckel.ntfy.service.SubscriberService
 import io.heckel.ntfy.service.SubscriberServiceManager
+import io.heckel.ntfy.update.AppUpdateManager
 import io.heckel.ntfy.util.Log
 import io.heckel.ntfy.util.SUBSCRIPTION_ICONS
 import io.heckel.ntfy.util.dangerButton
@@ -93,6 +94,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
     private val api by lazy { ApiService(this) }
     private val poller by lazy { Poller(api, repository) }
     private val messenger = FirebaseMessenger()
+    private val appUpdateManager by lazy { AppUpdateManager(this) }
 
     // UI elements
     private lateinit var menu: Menu
@@ -386,6 +388,8 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
 
         // FIXME 2026-05-04: Remove this migration after 1 month
         migrateSubscriptionIconsFromCache()
+
+        appUpdateManager.start()
     }
 
     private fun maybeRequestNotificationPermission() {
@@ -403,6 +407,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         showHideConnectionErrorMenuItem(repository.getConnectionDetails())
         showHideNoNetworkBanner()
         redrawList()
+        appUpdateManager.onResume()
     }
 
     private fun showHideBatteryBanner(subscriptions: List<Subscription>) {
@@ -456,6 +461,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
     }
 
     override fun onDestroy() {
+        appUpdateManager.stop()
         super.onDestroy()
         try {
             val connectivityManager = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -579,11 +585,8 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         runOnUiThread {
             // Show/hide menu items based on build config
             val rateAppItem = menu.findItem(R.id.main_menu_rate)
-            val docsItem = menu.findItem(R.id.main_menu_docs)
-            val reportBugItem = menu.findItem(R.id.main_menu_report_bug)
             rateAppItem.isVisible = BuildConfig.RATE_APP_AVAILABLE
-            docsItem.isVisible = BuildConfig.PAYMENT_LINKS_AVAILABLE // Google Payments Policy, see https://github.com/binwiederhier/ntfy/issues/1463
-            reportBugItem.isVisible = BuildConfig.PAYMENT_LINKS_AVAILABLE // Google Payments Policy, see https://github.com/binwiederhier/ntfy/issues/1463
+            menu.findItem(R.id.main_menu_check_updates)?.isVisible = BuildConfig.SELF_UPDATE_AVAILABLE
 
             // Pause notification icons
             val notificationsEnabledItem = menu.findItem(R.id.main_menu_notifications_enabled)
@@ -632,10 +635,8 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
                 startActivity(Intent(this, SettingsActivity::class.java))
                 true
             }
-            R.id.main_menu_report_bug -> {
-                startActivity(
-                    Intent(Intent.ACTION_VIEW, getString(R.string.main_menu_report_bug_url).toUri())
-                )
+            R.id.main_menu_check_updates -> {
+                appUpdateManager.checkForUpdates()
                 true
             }
             R.id.main_menu_rate -> {
@@ -648,12 +649,6 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
                         Intent(Intent.ACTION_VIEW, "https://play.google.com/store/apps/details?id=$packageName".toUri())
                     )
                 }
-                true
-            }
-            R.id.main_menu_docs -> {
-                startActivity(
-                    Intent(Intent.ACTION_VIEW, getString(R.string.main_menu_docs_url).toUri())
-                )
                 true
             }
             else -> super.onOptionsItemSelected(item)

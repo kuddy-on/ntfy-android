@@ -76,6 +76,33 @@
     <string name="main_menu_report_bug_title">Report a bug</string>
     <string name="main_menu_docs_title">Read the docs</string>
     <string name="main_menu_rate_title">Rate the app ⭐</string>
+    <string name="main_menu_check_updates_title">Check for updates</string>
+
+    <!-- In-app updates (self-distributed/F-Droid builds only) -->
+    <string name="update_check_checking">Checking for updates…</string>
+    <string name="update_check_available_title">Update available</string>
+    <string name="update_check_available_message">Installed version: %1$s\nLatest version: %2$s</string>
+    <string name="update_check_download">Download</string>
+    <string name="update_check_later">Later</string>
+    <string name="update_check_up_to_date_title">You’re up to date</string>
+    <string name="update_check_up_to_date_message">Version %1$s is the latest version.</string>
+    <string name="update_check_no_release_title">No release available</string>
+    <string name="update_check_no_release_message">This repository does not have a published GitHub Release yet.</string>
+    <string name="update_check_no_apk_title">APK unavailable</string>
+    <string name="update_check_no_apk_message">Release %1$s is newer, but it does not contain an installable APK.</string>
+    <string name="update_check_failed_title">Unable to check for updates</string>
+    <string name="update_check_failed_message">GitHub could not be checked: %1$s</string>
+    <string name="update_download_title">Notification %1$s</string>
+    <string name="update_download_description">Downloading app update</string>
+    <string name="update_download_started">The update is downloading. Installation will begin when it finishes.</string>
+    <string name="update_download_already_running">An update is already downloading.</string>
+    <string name="update_download_failed_title">Update download failed</string>
+    <string name="update_download_failed_message">The APK could not be downloaded or opened: %1$s</string>
+    <string name="update_download_file_missing">The downloaded APK could not be found.</string>
+    <string name="update_install_permission_title">Allow app installation</string>
+    <string name="update_install_permission_message">To install this update, allow Notification to install unknown apps in Android settings.</string>
+    <string name="update_install_permission_settings">Open settings</string>
+    <string name="update_installer_not_found">No APK installer is available on this device.</string>
 
     <!-- Main activity: Action mode -->
     <string name="main_action_mode_menu_unsubscribe">Unsubscribe</string>

@@ -73,6 +73,7 @@ android {
             debuggable true
             applicationIdSuffix ".debug"
             versionNameSuffix "-debug"
+            buildConfigField 'boolean', 'SELF_UPDATE_AVAILABLE', 'false'
         }
     }
 

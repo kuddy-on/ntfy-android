@@ -318,10 +318,7 @@
     <string name="share_suggested_topics">Suggested topics</string>
     <string name="share_successful">Message published</string>
     <string name="detail_share_image_failed">Unable to share notification: %1$s</string>
-    <string name="share_target_wechat">WeChat</string>
-    <string name="share_target_qq">QQ</string>
     <string name="detail_share_no_supported_apps">WeChat or QQ is not installed, or cannot share these images</string>
-    <string name="detail_share_target_failed">Unable to share to %1$s</string>
 
     <!-- Notification dialog -->
     <string name="notification_dialog_title">Mute notifications</string>

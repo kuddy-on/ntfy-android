@@ -1020,15 +1020,10 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
     }
 
     private fun showImageShareTargets(shareIntent: Intent) {
-        val targets = listOf(
-            Pair(getString(R.string.share_target_wechat), WECHAT_PACKAGE),
-            Pair(getString(R.string.share_target_qq), QQ_PACKAGE)
-        ).filter { (_, packageName) ->
-            packageManager.queryIntentActivities(
-                Intent(shareIntent).setPackage(packageName),
-                android.content.pm.PackageManager.MATCH_DEFAULT_ONLY
-            ).isNotEmpty()
-        }
+        val targets = listOfNotNull(
+            preferredShareIntent(shareIntent, WECHAT_PACKAGE, WECHAT_FRIEND_SHARE_ACTIVITY),
+            preferredShareIntent(shareIntent, QQ_PACKAGE, QQ_FRIEND_SHARE_ACTIVITY)
+        )
 
         if (targets.isEmpty()) {
             Toast
@@ -1037,25 +1032,35 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
             return
         }
 
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.share_title)
-            .setItems(targets.map { it.first }.toTypedArray()) { _, index ->
-                val (label, packageName) = targets[index]
-                try {
-                    startActivity(Intent(shareIntent).setPackage(packageName))
-                } catch (e: Exception) {
-                    Log.w(TAG, "Cannot share notification to $label", e)
-                    Toast
-                        .makeText(
-                            this,
-                            getString(R.string.detail_share_target_failed, label),
-                            Toast.LENGTH_LONG
-                        )
-                        .show()
-                }
+        // Initial intents are displayed before the primary target in Android's chooser.
+        // Keep WeChat first and QQ second while allowing the system to render the UI.
+        val chooser = Intent.createChooser(targets.last(), getString(R.string.share_title))
+        if (targets.size > 1) {
+            chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, targets.dropLast(1).toTypedArray())
+        }
+        startActivity(chooser)
+    }
+
+    private fun preferredShareIntent(
+        shareIntent: Intent,
+        packageName: String,
+        preferredActivityName: String
+    ): Intent? {
+        val activities = packageManager.queryIntentActivities(
+            Intent(shareIntent).setPackage(packageName),
+            android.content.pm.PackageManager.MATCH_DEFAULT_ONLY
+        )
+        val activity = activities.firstOrNull { it.activityInfo.name == preferredActivityName }
+            ?: activities.firstOrNull { resolveInfo ->
+                val label = resolveInfo.loadLabel(packageManager).toString()
+                label.contains("发送给朋友") ||
+                    label.contains("发送给好友") ||
+                    label.contains("send to friend", ignoreCase = true)
             }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            ?: activities.firstOrNull()
+            ?: return null
+
+        return Intent(shareIntent).setClassName(packageName, activity.activityInfo.name)
     }
 
     private fun onNotificationLongClick(notification: Notification) {
@@ -1136,5 +1141,7 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
 
         private const val WECHAT_PACKAGE = "com.tencent.mm"
         private const val QQ_PACKAGE = "com.tencent.mobileqq"
+        private const val WECHAT_FRIEND_SHARE_ACTIVITY = "com.tencent.mm.ui.tools.ShareImgUI"
+        private const val QQ_FRIEND_SHARE_ACTIVITY = "com.tencent.mobileqq.activity.JumpActivity"
     }
 }

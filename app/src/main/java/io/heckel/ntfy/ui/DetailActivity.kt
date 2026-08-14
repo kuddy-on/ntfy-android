@@ -1005,7 +1005,7 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
                     clipData = shareClipData
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
-                startActivity(Intent.createChooser(shareIntent, getString(R.string.share_title)))
+                showImageShareTargets(shareIntent)
             } catch (e: Exception) {
                 Log.w(TAG, "Cannot share notification as an image", e)
                 Toast
@@ -1017,6 +1017,45 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
                     .show()
             }
         }
+    }
+
+    private fun showImageShareTargets(shareIntent: Intent) {
+        val targets = listOf(
+            Pair(getString(R.string.share_target_wechat), WECHAT_PACKAGE),
+            Pair(getString(R.string.share_target_qq), QQ_PACKAGE)
+        ).filter { (_, packageName) ->
+            packageManager.queryIntentActivities(
+                Intent(shareIntent).setPackage(packageName),
+                android.content.pm.PackageManager.MATCH_DEFAULT_ONLY
+            ).isNotEmpty()
+        }
+
+        if (targets.isEmpty()) {
+            Toast
+                .makeText(this, R.string.detail_share_no_supported_apps, Toast.LENGTH_LONG)
+                .show()
+            return
+        }
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.share_title)
+            .setItems(targets.map { it.first }.toTypedArray()) { _, index ->
+                val (label, packageName) = targets[index]
+                try {
+                    startActivity(Intent(shareIntent).setPackage(packageName))
+                } catch (e: Exception) {
+                    Log.w(TAG, "Cannot share notification to $label", e)
+                    Toast
+                        .makeText(
+                            this,
+                            getString(R.string.detail_share_target_failed, label),
+                            Toast.LENGTH_LONG
+                        )
+                        .show()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun onNotificationLongClick(notification: Notification) {
@@ -1094,5 +1133,8 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
         const val EXTRA_SUBSCRIPTION_BASE_URL = "baseUrl"
         const val EXTRA_SUBSCRIPTION_TOPIC = "topic"
         const val EXTRA_SUBSCRIPTION_DISPLAY_NAME = "displayName"
+
+        private const val WECHAT_PACKAGE = "com.tencent.mm"
+        private const val QQ_PACKAGE = "com.tencent.mobileqq"
     }
 }

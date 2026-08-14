@@ -16,6 +16,10 @@
 
     <!-- UnifiedPush "raise to foreground" requirement, see https://unifiedpush.org/developers/spec/android/#service-to-raise-to-the-foreground -->
     <queries>
+        <!-- Notification images may only be shared to WeChat or QQ. Package visibility is
+             required on Android 11+ before checking whether either app is installed. -->
+        <package android:name="com.tencent.mm" />
+        <package android:name="com.tencent.mobileqq" />
         <intent>
             <action android:name="org.unifiedpush.android.connector.RAISE_TO_FOREGROUND" />
         </intent>

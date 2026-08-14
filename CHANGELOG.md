@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.26.1](https://github.com/kuddy-on/ntfy-android/compare/v1.26.0...v1.26.1) (2026-08-14)
+
+
+### Bug Fixes
+
+* use native friend share targets ([#9](https://github.com/kuddy-on/ntfy-android/issues/9)) ([f465884](https://github.com/kuddy-on/ntfy-android/commit/f465884c9d2420219b8b6039dc50f84cbf62c909))
+
 ## [1.26.0](https://github.com/kuddy-on/ntfy-android/compare/v1.25.4...v1.26.0) (2026-08-14)
 
 

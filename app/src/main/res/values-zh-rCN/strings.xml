@@ -158,6 +158,10 @@
     <string name="notification_popup_action_open">打开</string>
     <string name="share_successful">消息已发布</string>
     <string name="detail_share_image_failed">无法分享通知：%1$s</string>
+    <string name="share_target_wechat">微信</string>
+    <string name="share_target_qq">QQ</string>
+    <string name="detail_share_no_supported_apps">未安装微信或 QQ，或应用不支持分享这些图片</string>
+    <string name="detail_share_target_failed">无法分享到%1$s</string>
     <string name="notification_dialog_title">暂停通知</string>
     <string name="notification_dialog_muted_forever_toast_message">通知已暂停</string>
     <string name="notification_popup_action_download">下载</string>

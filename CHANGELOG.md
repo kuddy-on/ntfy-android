@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.26.0](https://github.com/kuddy-on/ntfy-android/compare/v1.25.4...v1.26.0) (2026-08-14)
+
+
+### Features
+
+* limit notification sharing to WeChat and QQ ([#7](https://github.com/kuddy-on/ntfy-android/issues/7)) ([3d830a1](https://github.com/kuddy-on/ntfy-android/commit/3d830a191b65bde58fdea4456fff68da09280645))
+
 ## [1.25.4](https://github.com/kuddy-on/ntfy-android/compare/v1.25.3...v1.25.4) (2026-08-11)
 
 
